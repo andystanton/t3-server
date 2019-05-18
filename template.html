@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <title>{0}</title>
+  <script type="text/javascript" src="/three.min.js"></script>
+  <style type="text/css">
+    html, body, canvas, div {{
+      margin: 0;
+      padding: 0;
+    }}
+  </style>
+  <script type="text/javascript">
+    var lastUpdated = null;
+  
+    function checkStatus() {{
+      const req = new XMLHttpRequest();
+      const url='/check?app={1}{0}';
+      req.open("GET", url, false);
+      req.send();
+      if (lastUpdated == null) {{
+        lastUpdated = req.responseText;
+      }} else if (lastUpdated != req.responseText) {{
+        location.reload();
+      }}
+    }}
+  
+    async function startApp() {{
+      let threeDemo = await import('{1}/__target__{0}.js')
+      window.threeDemo = threeDemo;
+      threeDemo.render();
+    }}
+    
+    document.onready=startApp();
+
+    setInterval(checkStatus, 1000);
+  </script>
+  </head>
+  <body>
+  </body>
+</html>
