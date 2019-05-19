@@ -15,7 +15,7 @@
   
     function checkStatus() {{
       const req = new XMLHttpRequest();
-      const url='/check?app={1}{0}';
+      const url='/check?app={1}/{0}';
       req.open("GET", url, false);
       req.send();
       if (lastUpdated == null) {{
@@ -26,14 +26,15 @@
     }}
   
     async function startApp() {{
-      let threeDemo = await import('{1}/__target__{0}.js')
+      let threeDemo = await import('{1}/__target__/{0}.js')
       window.threeDemo = threeDemo;
       threeDemo.render();
     }}
     
-    document.onready=startApp();
-
-    setInterval(checkStatus, 1000);
+    document.addEventListener("DOMContentLoaded", function(event) { 
+      startApp();
+      setInterval(checkStatus, 1000);
+    });
   </script>
   </head>
   <body>

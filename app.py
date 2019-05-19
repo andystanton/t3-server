@@ -1,5 +1,8 @@
 from http.server import HTTPServer, HTTPStatus, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from datetime import datetime
+from time import strftime
+from pathlib import Path
 import runpy
 import sys
 import os
@@ -7,11 +10,9 @@ import io
 import contextlib
 import re
 import logging
+import json
 
-from datetime import datetime
-from time import strftime
-
-logging.basicConfig(format='%(asctime)s %(levelname)7s: %(message)s')
+logging.basicConfig(format = '%(asctime)s %(levelname)7s: %(message)s')
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -38,7 +39,7 @@ class AppRequestHandler(BaseHTTPRequestHandler):
   
   # BaseHTTPRequestHandler request logging includes lots of quotes and
   # dashes without context. This function overrides to simplify it.
-  def log_request(self, code='-', size='-'):
+  def log_request(self, code = '-', size = '-'):
     if isinstance(code, HTTPStatus):
       code = code.value
     self.log_message('%s %s', self.requestline, str(code))
@@ -70,30 +71,49 @@ class AppRequestHandler(BaseHTTPRequestHandler):
     parsed_path = parsed_url.path
     parsed_params = parse_qs(parsed_url.query)
     
-    path = os.path.dirname(os.path.realpath(__file__))
-
-    if parsed_path.endswith('.html'):
+    t3_path = os.path.dirname(os.path.realpath(__file__))
+ 
+    if parsed_path == '/' or parsed_path == '/index.html':
+      with open(t3_path + '/index.html', mode='r') as file:
+        response = file.read().encode('utf-8')
       content_type = 'text/html'
-      status_code=200
-      match = re.findall(r"^(\/.*)?(\/\w+)\.html$", parsed_path)
-      (source_path, app) = match[0]
-      with open(path + '/template.html', mode='r') as file:
+      status_code = 200
+
+    elif parsed_path.endswith('.html'):
+      (source_path, app) = re.findall(r"^(\/.*)?\/(\w+)\.html$", parsed_path)[0]
+      run_transcrypt('{}/programs{}/{}'.format(t3_path, source_path, app))
+      with open(t3_path + '/template.html', mode='r') as file:
         response = file.read().format(app, source_path).encode('utf-8')
-      run_transcrypt('{}/programs{}{}'.format(path, source_path, app))
-    elif parsed_path == '/check':
-      content_type = 'text/plain'
-      status_code=200
-      app = parsed_params['app'][0]
-      updated_date = os.path.getmtime('{}/programs/{}.py'.format(path, app))
-      response = str(datetime.fromtimestamp(updated_date)).encode('utf-8')
+
+      content_type = 'text/html'
+      status_code = 200
+
     elif parsed_path.endswith('.js'):
-      content_type='text/javascript'
-      status_code=200
-      path_string = '{}{}'
+      path_string = '{}/{}'
       if '__target__' in parsed_path:
         path_string = '{}/programs{}'
-      with open(path_string.format(path, parsed_path), mode='rb') as file:
+
+      with open(path_string.format(t3_path, parsed_path), mode='rb') as file:
         response = file.read()
+      content_type = 'text/javascript'
+      status_code = 200
+
+    elif parsed_path == '/check':
+      app = parsed_params['app'][0]
+      updated_date = os.path.getmtime('{}/programs{}.py'.format(t3_path, app))
+
+      response = str(datetime.fromtimestamp(updated_date)).encode('utf-8')
+      content_type = 'text/plain'
+      status_code = 200
+
+    elif parsed_path == '/programs':
+      programs = []
+      for filename in Path(t3_path + '/programs').glob('**/*.py'):
+        programs.append(str(filename)[len(t3_path + '/programs'):].replace('.py', '.html'))
+
+      response = json.dumps(programs).encode('utf-8')
+      content_type = 'text/json'
+      status_code = 200
 
     self.send_response(status_code)
     self.send_header('Content-Type', content_type)

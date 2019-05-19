@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>T3 Server</title>
+    <script type="text/javascript">
+      function populatePages() {
+        const req = new XMLHttpRequest();
+        const url='/programs';
+        req.open("GET", url, false);
+        req.send();
+        var programList = document.createElement('ul');
+        document.body.appendChild(programList);
+
+        for (const item of JSON.parse(req.responseText)) {
+          const newItem = document.createElement('li');
+          const newLink = document.createElement('a');
+          newLink.innerHTML = item;
+          newLink.href = item;
+          newItem.appendChild(newLink);
+          programList.appendChild(newItem);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", function(event) { 
+        populatePages();
+      });
+    </script>
+    <style type='text/css'>
+    </style>
+  </head>
+  
+  <body>
+  <h1>T3 Server</h1>
+  </body>
+  
+</html>
